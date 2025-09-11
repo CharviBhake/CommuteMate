@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: Smart_Car_Pooling
+  data:
+    mongodb:
+      uri: mongodb+srv://charvibhake:Charvi%402005@cluster0.yvzxdt4.mongodb.net/carpooling_db?retryWrites=true&w=majority&appName=Cluster0
+      database: carpooling_db
