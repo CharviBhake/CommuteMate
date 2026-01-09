@@ -1,6 +1,7 @@
 package Smart_Carpooling.demo.Service;
 
 
+import Smart_Carpooling.demo.Entity.Status;
 import Smart_Carpooling.demo.Entity.User;
 import Smart_Carpooling.demo.Repository.UserRepository;
 import org.slf4j.Logger;
@@ -10,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -37,4 +39,16 @@ public class UserService {
     public User findByUsername(String userName){
         return userRepository.findByUsername(userName);
     }
+
+    public void disconnect(User user){
+        var storedUser=userRepository.findById(user.getId()).orElse(null);
+        if(storedUser!=null){
+            storedUser.setStatus(Status.OFFLINE);
+            userRepository.save(storedUser);
+        }
+    }
+  /* public List<User> findConnectUsers(){
+      return  userRepository.findAllByStatus(Status.ONLINE);
+    }
+   */
 }

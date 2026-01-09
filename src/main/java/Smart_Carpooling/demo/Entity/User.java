@@ -25,6 +25,8 @@ public class User {
     private String email;
     private String password;
     private String role;
+    private String nickname;
+    private Status status;
     private UserPreferences userPreferences;
     @DBRef
     @JsonIgnoreProperties("driver")

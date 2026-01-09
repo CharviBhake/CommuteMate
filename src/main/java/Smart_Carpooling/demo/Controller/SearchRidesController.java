@@ -24,12 +24,11 @@ public class SearchRidesController {
     @GetMapping("/nearby")
     public ResponseEntity<List<Ride>> getNearbyRides(@RequestParam String address) {
         try {
-            // Step 1: Convert address → lat/lng
+          
             double[] latLng = rideService.getLatLngFromAddress(address);
             double userLat = latLng[0];
             double userLng = latLng[1];
 
-            // Step 2: Find rides within 1km
             List<Ride> nearbyRides = rideService.findRidesWithinRadius(userLat, userLng, 1.0);
 
             return ResponseEntity.ok(nearbyRides);

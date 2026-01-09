@@ -52,7 +52,7 @@ public class BookingController {
         Optional<Ride> ride1=rideService.getRide(rideId);
         Ride ride2=ride1.orElse(null);
         User driver=ride2.getDriver();
-        if(userInDb==driver){
+        if(userInDb.equals(driver)){
             List<Booking> bookingList=ride2.getBookings();
             return new ResponseEntity<>(bookingList, HttpStatus.OK);
         }
