@@ -24,11 +24,26 @@ public class User {
     private String id;
     private String email;
     private String password;
-    private String role;
+    private String displayUsername;
     private String nickname;
+
+    private String phone;
+    private String location;
+    private String city;
+    private String bio;
+
+    private String carModel;
+    private String carNumber;
+    private String carColor;
+
     private Status status;
     private UserPreferences userPreferences;
-    @DBRef
-    @JsonIgnoreProperties("driver")
-    private ArrayList<Ride> rideList;
+    private int rating;
+    private String car;
+
+    private int totalRides;
+    private int ridesAsPassenger;
+    private int ridesAsDriver;
+
+
 }

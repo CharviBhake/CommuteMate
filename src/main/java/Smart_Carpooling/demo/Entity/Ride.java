@@ -19,7 +19,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-
+import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 @Data
 @Builder
 @NoArgsConstructor
@@ -40,12 +42,19 @@ public class Ride {
     private int availableSeats;
     private double pricePerSeat;
     private RideStatus status;
-
+    private int totalSeats;
     private List<Booking> bookings=new ArrayList<>();
+
     private double startLatitude;
     private double startLongitude;
 
     private double endLatitude;
     private double endLongitude;
+
+    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
+    private Point startPoint;
+
+    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
+    private Point endPoint;
 
 }

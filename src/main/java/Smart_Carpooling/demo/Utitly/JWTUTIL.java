@@ -1,11 +1,14 @@
 package Smart_Carpooling.demo.Utitly;
 
+import Smart_Carpooling.demo.Service.CustomUserDetails;
+import Smart_Carpooling.demo.Service.UserDetailsServiceImpl;
 import lombok.Data;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -17,11 +20,12 @@ import java.util.function.Function;
 @Component
 public class JWTUTIL {
     private String SECRET_KEY="Tal+HaV^uvCHEFsEVfpW#7g9^k*Z8$V!";
-
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
     private SecretKey getSigningKey(){
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
-    public String extractusername(String token){
+    public String extractId(String token){
         Claims claim=extractAllClaims(token);
         return claim.getSubject();
     }
@@ -34,9 +38,9 @@ public class JWTUTIL {
                 .getPayload();
     }
     private boolean isTokenExpired(String token){ return extractExpiration(token).before(new Date());}
-    public String generateToken(String username){
+    public String generateToken(String userId){
         Map<String,Object> claims=new HashMap<>();
-        return createToken(claims,username);
+        return createToken(claims,userId);
     }
     private String createToken(Map<String,Object> claims,String subject){
         return Jwts.builder()
@@ -45,12 +49,16 @@ public class JWTUTIL {
                 .header().empty().add("typ","JWT")
                 .and()
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis()+1000*3000))
+                .expiration(new Date(System.currentTimeMillis()+10000*30000))
                 .signWith(getSigningKey())
                 .compact();
     }
     public boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractusername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        final String userId = extractUserId(token);
+        return userId.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
+    public String extractUserId(String token) {
+        return extractAllClaims(token).getSubject();
+    }
+
 }

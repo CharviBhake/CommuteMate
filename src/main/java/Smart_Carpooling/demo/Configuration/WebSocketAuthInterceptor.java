@@ -23,13 +23,14 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message,MessageChannel channel){
+        System.out.println("🔥 WebSocket interceptor hit");
         StompHeaderAccessor accessor=MessageHeaderAccessor.getAccessor(message,StompHeaderAccessor.class);
         if(accessor!=null && StompCommand.CONNECT.equals(accessor.getCommand())){
             String authHeader=accessor.getFirstNativeHeader("Authorization");
             if(authHeader!=null && authHeader.startsWith("Bearer")){
                 String token=authHeader.substring(7);
-                String username=jwtutil.extractusername(token);
-                UserDetails userDetails=userDetailsService.loadUserByUsername(username);
+                String userId=jwtutil.extractUserId(token);
+                UserDetails userDetails=userDetailsService.loadUserById(userId);
                 if(jwtutil.validateToken(token,userDetails)){
                     UsernamePasswordAuthenticationToken authentication=new UsernamePasswordAuthenticationToken(
                             userDetails,

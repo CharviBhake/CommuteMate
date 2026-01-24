@@ -14,7 +14,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection="Bookings")
 public class Booking {
     @Id
-    private Long id;
+    private String id;
     @ManyToOne
     private User passenger;
     @ManyToOne

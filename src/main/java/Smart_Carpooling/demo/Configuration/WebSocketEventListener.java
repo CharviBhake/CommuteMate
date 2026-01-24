@@ -19,16 +19,13 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleWebSocketDisconnect(SessionDisconnectEvent event) {
-
         StompHeaderAccessor accessor =
                 StompHeaderAccessor.wrap(event.getMessage());
 
         Principal principal = accessor.getUser();
-
         if (principal != null) {
             String username = principal.getName();
             log.info("User disconnected: {}", username);
-
             // OPTIONAL: broadcast presence update (not a chat message)
             // You can later enhance this with rideId if needed
             messagingTemplate.convertAndSend(

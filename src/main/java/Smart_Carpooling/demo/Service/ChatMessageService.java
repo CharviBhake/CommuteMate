@@ -28,6 +28,7 @@ public class ChatMessageService {
         ChatRoom room = chatRoomService.getOrCreateChatRoom(rideId);
         ChatMessage message = ChatMessage.builder()
                 .chatRoomId(room.getId())
+                .rideId(rideId)
                 .senderId(senderId)
                 .content(content)
                 .timestamp(LocalDateTime.now())

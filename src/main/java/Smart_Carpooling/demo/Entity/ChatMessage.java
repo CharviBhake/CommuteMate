@@ -20,6 +20,7 @@ public class ChatMessage {
     @Id
     private String id;
     private String chatRoomId;
+    private String rideId;
     private String senderId;
     private String content;
     private LocalDateTime timestamp;

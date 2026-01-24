@@ -14,6 +14,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+@CrossOrigin(origins="http://localhost:5173")
 @Slf4j
 @RestController
 @RequestMapping("/public")
@@ -28,28 +30,50 @@ public class PublicController {
     private JWTUTIL jwtutil;
 
     @PostMapping("/sign-up")
-    public ResponseEntity<String> signup(@RequestBody User user){
-        User user1=new User();
-        user1.setEmail(user.getEmail());
-        user1.setUsername(user.getUsername());
-        user1.setPassword(user.getPassword());
-        userService.saveNewUser(user1);
-        String token=jwtutil.generateToken(user1.getUsername());
-        log.info("Saving user: {}", user.getUsername());
-        return ResponseEntity.ok("Bearer"+token);
+    public ResponseEntity<?> signup(@RequestBody User user) {
+        user.setDisplayUsername(user.getUsername());
+        user.setUsername(user.getEmail());   // email stored as username
+        user.setEmail(user.getEmail());
+       // user.setDisplayUsername(user.getUsername());
+        userService.saveNewUser(user);
+
+        String token = jwtutil.generateToken(user.getId());
+        return ResponseEntity.ok(Map.of("token", token));
     }
+
+
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User user){
-        try{
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(),user.getPassword()));
-            UserDetails userDetails=userDetailsService.loadUserByUsername(user.getUsername());
-            String jwt=jwtutil.generateToken(userDetails.getUsername());
-            return new ResponseEntity<>(jwt, HttpStatus.OK);
-        }catch (Exception e){
-            log.error("Exception occured wjile creating token incorrect pass or name",e);
-            return new ResponseEntity<>("Incorrect username or password",HttpStatus.BAD_REQUEST);
+    public ResponseEntity<?> login(@RequestBody User loginRequest) {
+
+        System.out.println("LOGIN HIT (email): " + loginRequest.getEmail());
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()
+                    )
+            );
+            User userFromDb = userService.findByUsername(loginRequest.getEmail());
+            if (userFromDb == null) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+            String jwt = jwtutil.generateToken(userFromDb.getId());
+            System.out.println("LOGIN JWT SUBJECT = " + userFromDb.getId());
+
+            return ResponseEntity.ok(Map.of("token", jwt));
+
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Incorrect email or password"));
         }
     }
+
+
+
     @GetMapping("/health-check")
     public String HealthCheck(){return "OK";}
 }

@@ -4,6 +4,8 @@ import Smart_Carpooling.demo.Entity.Booking;
 import Smart_Carpooling.demo.Entity.BookingStatus;
 import Smart_Carpooling.demo.Entity.Ride;
 import Smart_Carpooling.demo.Entity.User;
+import Smart_Carpooling.demo.Repository.BookingRepo;
+import Smart_Carpooling.demo.Repository.RideRepository;
 import Smart_Carpooling.demo.Service.BookingServic;
 import Smart_Carpooling.demo.Service.RideService;
 import Smart_Carpooling.demo.Service.UserService;
@@ -27,74 +29,96 @@ public class BookingController {
     private UserService userService;
     @Autowired
     private RideService rideService;
+    @Autowired
+    private BookingRepo bookingRepo;
 
-    @PutMapping("{rideId}")
-    public ResponseEntity<?> addBooking(@PathVariable String rideId, @RequestBody Booking booking){
-        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
-        String userName=authentication.getName();
-        User userInDb=userService.findByUsername(userName);
-        Optional<Ride> ride1=rideService.getRide(rideId);
-        Ride ride2=ride1.orElse(null);
-        Booking booking1= Booking.builder()
-                .passenger(userInDb)
-                .ride(ride2)
-                .seatsBooked(booking.getSeatsBooked())
+    @PutMapping("/{rideId}")
+    public ResponseEntity<?> addBooking(
+            @PathVariable String rideId,
+            @RequestBody Booking bookingReq
+    ) {
+        String userId=SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println("JWT USER ID = " + userId);
+        User passenger=userService.findById(userId);
+        if (passenger == null) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid user");
+        }
+
+        Ride ride = rideService.getRide(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+        if (bookingReq.getSeatsBooked() > ride.getAvailableSeats()) {
+            return ResponseEntity.badRequest().body("Not enough seats");
+        }
+        if(bookingRepo.existsByRideIdAndPassengerIdAndStatus(passenger.getId(),rideId,BookingStatus.CONFIRMED)||
+                bookingRepo.existsByRideIdAndPassengerIdAndStatus(passenger.getId(),rideId,BookingStatus.PENDING)){
+            return ResponseEntity.badRequest().body("Already Tried to book");
+        }
+        Booking booking = Booking.builder()
+                .passenger(passenger)
+                .ride(ride)
+                .seatsBooked(bookingReq.getSeatsBooked())
                 .status(BookingStatus.PENDING)
                 .build();
-        ride2.getBookings().add(booking1);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-    @GetMapping("{rideId}")
-    public ResponseEntity<?> getAll(@PathVariable String rideId){
-        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
-        String userName=authentication.getName();
-        User userInDb=userService.findByUsername(userName);
-        Optional<Ride> ride1=rideService.getRide(rideId);
-        Ride ride2=ride1.orElse(null);
-        User driver=ride2.getDriver();
-        if(userInDb.equals(driver)){
-            List<Booking> bookingList=ride2.getBookings();
-            return new ResponseEntity<>(bookingList, HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-    }
-    @PutMapping("{rideId}/{bookingId}/CONFIRMED")
-    public ResponseEntity<?> changeStatus(@PathVariable String rideId, String bookingId){
-        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
-        String userName=authentication.getName();
-        User userInDb=userService.findByUsername(userName);
-        Optional<Ride> ride1=rideService.getRide(rideId);
-        Ride ride2=ride1.orElse(null);
-        User driver=ride2.getDriver();
-        if(userInDb==driver){
-            Optional<Booking> booking=bookingServic.findBooking(bookingId);
-            Booking booking1=booking.orElse(null);
-            int numSeats=booking1.getSeatsBooked();
-            int rideSeats=ride2.getAvailableSeats();
-            if(numSeats>rideSeats) return changeStatus2(rideId,bookingId);
-            booking1.setStatus(BookingStatus.CONFIRMED);
-            ride2.setAvailableSeats(rideSeats-numSeats);
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
-    }
-    @PutMapping("{rideId}/{bookingId}/CANCELLED")
-    public ResponseEntity<?> changeStatus2(@PathVariable String rideId, String bookingId){
-        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
-        String userName=authentication.getName();
-        User userInDb=userService.findByUsername(userName);
-        Optional<Ride> ride1=rideService.getRide(rideId);
-        Ride ride2=ride1.orElse(null);
-        User driver=ride2.getDriver();
-        if(userInDb==driver){
-            Optional<Booking> booking=bookingServic.findBooking(bookingId);
-            Booking booking1=booking.orElse(null);
-            booking1.setStatus(BookingStatus.CANCELLED);
-            ride2.getBookings().remove(booking1);
-            rideService.saveRide(ride2);
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+        bookingServic.saveBooking(booking);
+        return ResponseEntity.ok("Booking request sent");
     }
 
+    @GetMapping("/{rideId}")
+    public ResponseEntity<?> getAll(@PathVariable String rideId) {
+        String userId=SecurityContextHolder.getContext().getAuthentication().getName();
+        User user=userService.findById(userId);
+        if(user==null){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid user");
+        }
+        List<Booking> bookings=bookingRepo.findByRideId(rideId);
+        return ResponseEntity.ok(bookings);
+    }
+
+    @PutMapping("/{rideId}/{bookingId}/CONFIRMED")
+    public ResponseEntity<?> confirmBooking(
+            @PathVariable String rideId,
+            @PathVariable String bookingId
+    ) {
+
+        User driver = userService.findById(
+                SecurityContextHolder.getContext().getAuthentication().getName());
+        Ride ride = rideService.getRide(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+        if (!driver.getId().equals(ride.getDriver().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        Booking booking = bookingServic.findBooking(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+        if (booking.getSeatsBooked() > ride.getAvailableSeats()) {
+            return ResponseEntity.badRequest().body("Not enough seats");
+        }
+        booking.setStatus(BookingStatus.CONFIRMED);
+        ride.setAvailableSeats(
+                ride.getAvailableSeats() - booking.getSeatsBooked()
+        );
+        bookingServic.saveBooking(booking);
+        rideService.saveRide(ride);
+        return ResponseEntity.ok("Booking confirmed");
+    }
+
+    @PutMapping("/{rideId}/{bookingId}/CANCELLED")
+    public ResponseEntity<?> cancelBooking(
+            @PathVariable String rideId,
+            @PathVariable String bookingId
+    ) {
+        User driver = userService.findById(
+                SecurityContextHolder.getContext().getAuthentication().getName());
+        Ride ride = rideService.getRide(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+        if (!driver.getId().equals(ride.getDriver().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        Booking booking = bookingServic.findBooking(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingServic.saveBooking(booking);
+        return ResponseEntity.ok("Booking cancelled");
+    }
 }

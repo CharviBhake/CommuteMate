@@ -10,10 +10,11 @@ import java.util.List;
 @Repository
 public interface BookingRepo extends MongoRepository<Booking,String> {
     List<Booking> findByRideIdAndStatus(String rideId, BookingStatus status);
-    boolean existsByRide_IdAndPassenger_IdAndStatus(
+    boolean existsByRideIdAndPassengerIdAndStatus(
             String rideId,
             String passengerId,
             BookingStatus status
     );
+    List<Booking> findByRideId(String rideId);
 
 }

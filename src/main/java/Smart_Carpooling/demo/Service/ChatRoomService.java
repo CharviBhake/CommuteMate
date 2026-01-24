@@ -34,7 +34,7 @@ public class ChatRoomService {
                         )
                 );
     }
-    public List<User> getUsersInRide(String rideId) {
+  /*  public List<User> getUsersInRide(String rideId) {
         List<Booking> bookings =
                 bookingRepo.findByRideIdAndStatus(
                         rideId, BookingStatus.CONFIRMED);
@@ -43,9 +43,9 @@ public class ChatRoomService {
                 .toList();
 
         return userRepository.findByIdIn(userIds);
-    }
+    } */
     public boolean canUserChat(String rideId, String userId) {
-        return bookingRepo.existsByRide_IdAndPassenger_IdAndStatus(
+        return bookingRepo.existsByRideIdAndPassengerIdAndStatus(
                 rideId, userId, BookingStatus.CONFIRMED
         );
     }

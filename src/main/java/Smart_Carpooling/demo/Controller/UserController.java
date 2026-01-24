@@ -10,10 +10,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/user")
@@ -23,25 +23,103 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-    @PutMapping
-    public ResponseEntity<?> updateUser(@RequestBody User user){
-        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
-        System.out.println(authentication);
-        System.out.println(authentication.getAuthorities());
-        System.out.println(authentication.isAuthenticated());
-        String userName=authentication.getName();
-        User userInDb=userService.findByUsername(userName);
-        if(userInDb!=null){
-            userInDb.setUsername(user.getUsername());
-            userInDb.setPassword(user.getPassword());
-            userService.saveNewUser(userInDb);
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(){
+        try{
+            Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+            String userId=authentication.getName();
+            User user=userService.findById(userId);
+            Map<String,Object> profile=new HashMap<>();
+            profile.put("id", user.getId());
+         //   profile.put("username", user.getUsername());
+            profile.put("email", user.getEmail());
+            profile.put("name", user.getDisplayUsername());
+            profile.put("phone", user.getPhone());
+            profile.put("location", user.getLocation());
+            profile.put("city", user.getCity());
+            profile.put("bio", user.getBio());
+            profile.put("carModel", user.getCarModel());
+            profile.put("carNumber", user.getCarNumber());
+            profile.put("carColor", user.getCarColor());
+           return ResponseEntity.ok(profile);
+        }catch(Exception e){
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<?> updateUser(@RequestBody Map<String,Object> updates){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userId = authentication.getName();
+            User user = userService.findById(userId);
+            if (user != null) {
+                if (updates.containsKey("name")) {
+                    user.setDisplayUsername((String) updates.get("name"));
+                }
+                if (updates.containsKey("email")) {
+                    user.setEmail((String) updates.get("email"));
+                    user.setUsername((String) updates.get("email"));
+                }
+                if (updates.containsKey("phone")) {
+                    user.setPhone((String) updates.get("phone"));
+                }
+                if (updates.containsKey("location")) {
+                    user.setLocation((String) updates.get("location"));
+                }
+                if (updates.containsKey("city")) {
+                    user.setCity((String) updates.get("city"));
+                }
+                if (updates.containsKey("bio")) {
+                    user.setBio((String) updates.get("bio"));
+                }
+                if (updates.containsKey("carModel")) {
+                    user.setCarModel((String) updates.get("carModel"));
+                }
+                if (updates.containsKey("carNumber")) {
+                    user.setCarNumber((String) updates.get("carNumber"));
+                }
+                if (updates.containsKey("carColor")) {
+                    user.setCarColor((String) updates.get("carColor"));
+                }
+                User updatedUser=userService.updateUser(user);
+                Map<String, Object> profile = new HashMap<>();
+                profile.put("id", updatedUser.getId());
+                profile.put("username", updatedUser.getUsername());
+                profile.put("email", updatedUser.getEmail());
+                profile.put("name", updatedUser.getDisplayUsername());
+                profile.put("phone", updatedUser.getPhone());
+                profile.put("location", updatedUser.getLocation());
+                profile.put("city", updatedUser.getCity());
+                profile.put("bio", updatedUser.getBio());
+                profile.put("carModel", updatedUser.getCarModel());
+                profile.put("carNumber", updatedUser.getCarNumber());
+                profile.put("carColor", updatedUser.getCarColor());
+                return ResponseEntity.ok(profile);
+            }
+        }catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
         }
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
     @DeleteMapping
     public ResponseEntity<?> deleteUserByUserName(){
         Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
         userRepository.deleteByUsername(authentication.getName());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName(); // because username = email
+        User user = userService.findByUsername(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        return ResponseEntity.ok(user);
+    }
+
 }

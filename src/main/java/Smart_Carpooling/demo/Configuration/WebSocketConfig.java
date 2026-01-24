@@ -21,19 +21,22 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration){
-        registration.interceptors(webSocketAuthInterceptor);
+       registration.interceptors(webSocketAuthInterceptor);
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) { //this methods defines where clients connect
-        registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();// frontend connects to https://localhost:8080/ws basically a websocket endpoint
+        registry.addEndpoint("/ws").
+                setAllowedOriginPatterns("*");
+               // addInterceptors(webSocketAuthInterceptor).
+             //   frontend connects to https://localhost:8080/ws basically a websocket endpoint
 
     }
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) { //this controlls routing of messages
         registry.setApplicationDestinationPrefixes("/app");
-        registry.setUserDestinationPrefix("/user");
-        registry.enableSimpleBroker("/topic", "/queue", "/user"); //message sent from server to clinets
+      //  registry.setUserDestinationPrefix("/user");
+        registry.enableSimpleBroker("/topic", "/queue"); //message sent from server to clinets
         //topic-> broadcast (ride chat) /queue-> private messages /user->user specific queue
 
     }

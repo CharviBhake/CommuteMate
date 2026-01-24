@@ -47,6 +47,12 @@ public class UserService {
             userRepository.save(storedUser);
         }
     }
+    public User findById(String userId){
+        return userRepository.findByIdIn(userId);
+    }
+    public User updateUser(User user){
+        return userRepository.save(user);
+    }
   /* public List<User> findConnectUsers(){
       return  userRepository.findAllByStatus(Status.ONLINE);
     }
