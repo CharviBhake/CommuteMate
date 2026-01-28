@@ -4,6 +4,15 @@ spring:
   data:
     mongodb:
       uri: mongodb+srv://charvibhake:Charvi%402005@cluster0.yvzxdt4.mongodb.net/carpooling_db?retryWrites=true&w=majority&appName=Cluster0
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+    cache:
+      type: redis
+
+
 mail:
   host: smtp.gmail.com
   port: 587
