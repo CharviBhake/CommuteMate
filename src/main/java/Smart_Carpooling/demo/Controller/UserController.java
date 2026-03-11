@@ -2,7 +2,10 @@ package Smart_Carpooling.demo.Controller;
 
 import Smart_Carpooling.demo.Entity.User;
 import Smart_Carpooling.demo.Repository.UserRepository;
+import Smart_Carpooling.demo.Service.JwtBlacklistService;
 import Smart_Carpooling.demo.Service.UserService;
+import Smart_Carpooling.demo.Utitly.JWTUTIL;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +25,10 @@ public class UserController {
     private UserService userService;
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private JWTUTIL jwtutil;
+    @Autowired
+    private JwtBlacklistService jwtBlacklistService;
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(){
         try{
@@ -115,11 +121,22 @@ public class UserController {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName(); // because username = email
-        User user = userService.findByUsername(email);
+        User user = userService.findById(email);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
         return ResponseEntity.ok(user);
+    }
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse request){
+        String header=request.getHeader("Authorization");
+        if(header==null || !header.startsWith("Bearer")){
+            return ResponseEntity.badRequest().body("no token");
+        }
+        String token=header.substring(7);
+        long ttl=jwtutil.getRemainingTime(token);
+        jwtBlacklistService.blacklistToken(token,ttl);
+        return ResponseEntity.ok("logged out successfully");
     }
 
 }

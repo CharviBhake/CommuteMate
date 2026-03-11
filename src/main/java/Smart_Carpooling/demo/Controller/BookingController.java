@@ -8,6 +8,7 @@ import Smart_Carpooling.demo.Repository.BookingRepo;
 import Smart_Carpooling.demo.Repository.RideRepository;
 import Smart_Carpooling.demo.Service.BookingServic;
 import Smart_Carpooling.demo.Service.RideService;
+import Smart_Carpooling.demo.Service.SeatLockService;
 import Smart_Carpooling.demo.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,8 @@ public class BookingController {
     private RideService rideService;
     @Autowired
     private BookingRepo bookingRepo;
+    @Autowired
+    private SeatLockService seatLockService;
 
     @PutMapping("/{rideId}")
     public ResponseEntity<?> addBooking(
@@ -48,12 +51,18 @@ public class BookingController {
 
         Ride ride = rideService.getRide(rideId)
                 .orElseThrow(() -> new RuntimeException("Ride not found"));
-        if (bookingReq.getSeatsBooked() > ride.getAvailableSeats()) {
-            return ResponseEntity.badRequest().body("Not enough seats");
-        }
+        int requestSeats=bookingReq.getSeatsBooked();
+        int lockedseats=seatLockService.totalLockedSeats(rideId);
+        int effectiveAvailable=ride.getAvailableSeats()-lockedseats;
+        if(requestSeats>effectiveAvailable) return ResponseEntity.badRequest().body("not enough seats availabel");
+
         if(bookingRepo.existsByRideIdAndPassengerIdAndStatus(passenger.getId(),rideId,BookingStatus.CONFIRMED)||
                 bookingRepo.existsByRideIdAndPassengerIdAndStatus(passenger.getId(),rideId,BookingStatus.PENDING)){
             return ResponseEntity.badRequest().body("Already Tried to book");
+        }
+        boolean locked=seatLockService.lockSeats(rideId,passenger.getId(),requestSeats);
+        if(!locked){
+            return ResponseEntity.badRequest().body("seats temporarily unavialble");
         }
         Booking booking = Booking.builder()
                 .passenger(passenger)
@@ -94,10 +103,11 @@ public class BookingController {
         if (booking.getSeatsBooked() > ride.getAvailableSeats()) {
             return ResponseEntity.badRequest().body("Not enough seats");
         }
-        booking.setStatus(BookingStatus.CONFIRMED);
         ride.setAvailableSeats(
                 ride.getAvailableSeats() - booking.getSeatsBooked()
         );
+        booking.setStatus(BookingStatus.CONFIRMED);
+        seatLockService.releaseLock(rideId,booking.getPassenger().getId());
         bookingServic.saveBooking(booking);
         rideService.saveRide(ride);
         return ResponseEntity.ok("Booking confirmed");

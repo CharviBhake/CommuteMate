@@ -60,5 +60,8 @@ public class JWTUTIL {
     public String extractUserId(String token) {
         return extractAllClaims(token).getSubject();
     }
-
+    public long getRemainingTime(String token){
+        Date expration=extractExpiration(token);
+        return expration.getTime()-System.currentTimeMillis();
+    }
 }

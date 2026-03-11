@@ -4,6 +4,7 @@ import Smart_Carpooling.demo.Entity.Ride;
 import Smart_Carpooling.demo.Entity.SearchRide;
 import Smart_Carpooling.demo.Repository.RideRepository;
 import Smart_Carpooling.demo.Service.GeocodingService;
+import Smart_Carpooling.demo.Service.NearByRideCacheService;
 import Smart_Carpooling.demo.Service.RideService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
@@ -25,6 +26,8 @@ public class SearchRidesController {
     private RideService rideService;
     @Autowired
     private RideRepository rideRepository;
+    @Autowired
+    private NearByRideCacheService nearByRideCacheService;
     @GetMapping("/nearby")
     public ResponseEntity<List<Ride>> getNearbyRides(@RequestParam String address) {
         try {
@@ -60,18 +63,22 @@ public class SearchRidesController {
         }
         System.out.println("USER LAT = " + userStartLatLng[0]);
         System.out.println("USER LNG = " + userStartLatLng[1]);
+        double radiusKm=50;
+        String cacheKey= nearByRideCacheService.buildKey(userStartLatLng[0],userStartLatLng[1],radiusKm);
+        List<Ride> cached=nearByRideCacheService.get(cacheKey);
+        if(cached!=null){
+            System.out.println("Redis cache hit");
+            return ResponseEntity.ok(cached);
+        }
         Point userStart = new Point(
                 userStartLatLng[1], // lng
                 userStartLatLng[0]  // lat
         );
-        Distance radius = new Distance(50, Metrics.KILOMETERS);
+        Distance radius = new Distance(radiusKm, Metrics.KILOMETERS);
         List<Ride> nearbyRides =
                 rideRepository.findByStartPointNear(userStart, radius);
-        List<Ride> result = rideRepository.findByStartPointNear(userStart,radius);
-        System.out.println("Found rides= "+result.size());
-
-        return ResponseEntity.ok(result);
+        System.out.println("REDIS MISS TRYING TO FIND USING MONGODB="+nearbyRides.size());
+        nearByRideCacheService.set(cacheKey,nearbyRides);
+        return ResponseEntity.ok(nearbyRides);
     }
-
-
 }

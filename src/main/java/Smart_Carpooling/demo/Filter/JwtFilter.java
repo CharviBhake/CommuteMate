@@ -1,6 +1,7 @@
 package Smart_Carpooling.demo.Filter;
 
 import Smart_Carpooling.demo.Entity.User;
+import Smart_Carpooling.demo.Service.JwtBlacklistService;
 import Smart_Carpooling.demo.Service.UserDetailsServiceImpl;
 import Smart_Carpooling.demo.Service.UserService;
 import Smart_Carpooling.demo.Utitly.JWTUTIL;
@@ -28,6 +29,8 @@ public class JwtFilter extends OncePerRequestFilter {
     private UserDetailsServiceImpl userDetailsService;
     @Autowired
     private JWTUTIL jwtutil;
+    @Autowired
+    private JwtBlacklistService jwtBlacklistService;
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -41,6 +44,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
+            if(jwtBlacklistService.isBlacklisted(jwt)){
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("token is blacklisted");
+                return;
+            }
             userId = jwtutil.extractUserId(jwt);
         }
         if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
