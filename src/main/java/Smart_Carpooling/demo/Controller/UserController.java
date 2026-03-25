@@ -1,6 +1,10 @@
 package Smart_Carpooling.demo.Controller;
 
+import Smart_Carpooling.demo.Entity.Booking;
+import Smart_Carpooling.demo.Entity.Ride;
 import Smart_Carpooling.demo.Entity.User;
+import Smart_Carpooling.demo.Repository.BookingRepo;
+import Smart_Carpooling.demo.Repository.RideRepository;
 import Smart_Carpooling.demo.Repository.UserRepository;
 import Smart_Carpooling.demo.Service.JwtBlacklistService;
 import Smart_Carpooling.demo.Service.UserService;
@@ -15,7 +19,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -29,6 +36,10 @@ public class UserController {
     private JWTUTIL jwtutil;
     @Autowired
     private JwtBlacklistService jwtBlacklistService;
+    @Autowired
+    private RideRepository rideRepository;
+    @Autowired
+    private BookingRepo bookingRepo;
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(){
         try{
@@ -61,29 +72,50 @@ public class UserController {
             User user = userService.findById(userId);
             if (user != null) {
                 if (updates.containsKey("name")) {
-                    user.setDisplayUsername((String) updates.get("name"));
+                    String name= (String) updates.get("name");
+                    if(name!=null && !name.isBlank()){
+                        user.setDisplayUsername(name);
+                    }
                 }
-                if (updates.containsKey("email")) {
+              /*  if (updates.containsKey("email")) {
                     user.setEmail((String) updates.get("email"));
                     user.setUsername((String) updates.get("email"));
-                }
+                } */
                 if (updates.containsKey("phone")) {
-                    user.setPhone((String) updates.get("phone"));
+                    String phone = (String) updates.get("phone");
+                    if (phone != null && !phone.isBlank()) {
+                        user.setPhone(phone);
+                    }
                 }
                 if (updates.containsKey("location")) {
-                    user.setLocation((String) updates.get("location"));
+                    String Location= ((String) updates.get("location"));
+                    if(Location!=null && !Location.isBlank()){
+                        user.setLocation(Location);
+                    }
                 }
                 if (updates.containsKey("city")) {
-                    user.setCity((String) updates.get("city"));
+                    String city= (String) updates.get("city");
+                    if(city!=null && !city.isBlank()){
+                        user.setLocation(city);
+                    }
                 }
                 if (updates.containsKey("bio")) {
-                    user.setBio((String) updates.get("bio"));
+                    String bio= (String) updates.get("bio");
+                    if(bio!=null && !bio.isBlank()){
+                        user.setLocation(bio);
+                    }
                 }
                 if (updates.containsKey("carModel")) {
-                    user.setCarModel((String) updates.get("carModel"));
+                    String carModel= (String) updates.get("carModel");
+                    if(carModel!=null && !carModel.isBlank()){
+                        user.setLocation(carModel);
+                    }
                 }
                 if (updates.containsKey("carNumber")) {
-                    user.setCarNumber((String) updates.get("carNumber"));
+                    String carNo= (String) updates.get("carNumber");
+                    if(carNo!=null && !carNo.isBlank()){
+                        user.setLocation(carNo);
+                    }
                 }
                 if (updates.containsKey("carColor")) {
                     user.setCarColor((String) updates.get("carColor"));
@@ -138,5 +170,45 @@ public class UserController {
         jwtBlacklistService.blacklistToken(token,ttl);
         return ResponseEntity.ok("logged out successfully");
     }
+    @GetMapping("/total_trips")
+    public ResponseEntity<?> getTrips(){
+        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+        String email=authentication.getName();
+        User user=userService.findById(email);
+        return ResponseEntity.ok(user.getTotalRides());
+    }
+
+    @GetMapping("/co2")
+    public ResponseEntity<?> getCo2(){
+        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+        String email=authentication.getName();
+        User user=userService.findById(email);
+        List<Ride> rides=rideRepository.findByDriverId(user.getId());
+        int total=0;
+        for(int i=0;i<rides.size();i++){
+            total+=rides.get(i).getCo2Saved();
+        }
+        return  ResponseEntity.ok(total);
+    }
+
+    @GetMapping("/savings")
+    public ResponseEntity<Double> calculateSavings(){
+        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+        String email=authentication.getName();
+        User user=userService.findById(email);
+        List<Booking> bookings=bookingRepo.findByPassengerId(user.getId());
+        double totalSavings= bookings.stream()
+                    .filter(b->b.getRide().getRideDate().isBefore(LocalDate.now()))
+                .mapToDouble(b->{
+                    Ride r=b.getRide();
+                    int passengers=r.getTotalSeats()-r.getAvailableSeats();
+                    if(passengers<=1) return 0;
+                    double solo=r.getDistance()*10;
+                    return solo-(solo/passengers);
+                })
+                .sum();
+        return ResponseEntity.ok(totalSavings);
+    }
+
 
 }

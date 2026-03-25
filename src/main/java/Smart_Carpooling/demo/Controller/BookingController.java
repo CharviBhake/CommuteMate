@@ -6,11 +6,9 @@ import Smart_Carpooling.demo.Entity.Ride;
 import Smart_Carpooling.demo.Entity.User;
 import Smart_Carpooling.demo.Repository.BookingRepo;
 import Smart_Carpooling.demo.Repository.RideRepository;
-import Smart_Carpooling.demo.Service.BookingServic;
-import Smart_Carpooling.demo.Service.RideService;
-import Smart_Carpooling.demo.Service.SeatLockService;
-import Smart_Carpooling.demo.Service.UserService;
+import Smart_Carpooling.demo.Service.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.geo.Distance;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -34,6 +32,8 @@ public class BookingController {
     private BookingRepo bookingRepo;
     @Autowired
     private SeatLockService seatLockService;
+    @Autowired
+    private DistanceUtil distanceUtil;
 
     @PutMapping("/{rideId}")
     public ResponseEntity<?> addBooking(
@@ -109,6 +109,10 @@ public class BookingController {
         booking.setStatus(BookingStatus.CONFIRMED);
         seatLockService.releaseLock(rideId,booking.getPassenger().getId());
         bookingServic.saveBooking(booking);
+        double distance=distanceUtil.calculateDistance(ride.getStartLatitude(),
+                ride.getStartLongitude(),ride.getEndLongitude(),ride.getEndLongitude());
+        double co2=distance*(0.12)*(ride.getTotalSeats()-ride.getAvailableSeats());
+        ride.setCo2Saved(co2);
         rideService.saveRide(ride);
         return ResponseEntity.ok("Booking confirmed");
     }

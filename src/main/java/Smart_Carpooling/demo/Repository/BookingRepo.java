@@ -16,5 +16,5 @@ public interface BookingRepo extends MongoRepository<Booking,String> {
             BookingStatus status
     );
     List<Booking> findByRideId(String rideId);
-
+    List<Booking> findByPassengerId(String UserId);
 }

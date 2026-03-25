@@ -56,5 +56,7 @@ public class Ride {
 
     @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
     private Point endPoint;
+    private double distance;
+    private double co2Saved;
 
 }

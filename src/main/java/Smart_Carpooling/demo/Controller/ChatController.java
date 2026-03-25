@@ -36,7 +36,7 @@ public class ChatController {
             Principal principal
     ) {
         String senderId = principal.getName(); // from JWT
-        System.out.println("🔥 CHAT MESSAGE RECEIVED");
+        System.out.println("🔥 CHAT MESSAGE RECEIVED FROM RIDEID"+request.getRideId());
         // Authorization check
         if (!chatRoomService.canUserChat(request.getRideId(), senderId)) {
             throw new RuntimeException("User not allowed to chat in this ride");
